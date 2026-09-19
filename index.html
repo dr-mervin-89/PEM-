@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>PEM Calc</title>
+<meta name="theme-color" content="#f3f5f9">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+  --bg:#f2f4f8; --panel:#ffffff; --ink:#0f172a; --ink-dim:#5b6478; --line:#dde3ee;
+  --good:#16a34a; --warn:#b45309; --bad:#dc2626; --accent:#0369a1;
+  --c-patient:#334155; --c-wetflag:#b91c1c; --c-cardiac:#7f1d1d; --c-emerg:#b45309;
+  --c-vitals:#1d4ed8; --c-rsi:#0f766e; --c-fluid:#0369a1; --c-seizure:#6d28d9; --c-trauma:#9a3412;
+  --radius:14px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:17px; line-height:1.35;
+  -webkit-tap-highlight-color:transparent;
+  padding-bottom:40px;
+}
+h1,h2,h3{margin:0 0 6px;}
+b, strong{ color:var(--ink); }
+.hdr{
+  position:sticky; top:0; z-index:30;
+  background:linear-gradient(180deg,#ffffff,#f6f8fb 90%);
+  border-bottom:1px solid var(--line);
+  padding:10px 14px 8px;
+  transition:padding .22s ease;
+}
+.hdr .brand{display:flex; align-items:center; gap:10px; transition:gap .22s ease;}
+.hdr .brand .mark{
+  width:34px;height:34px;border-radius:10px;background:var(--accent);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;flex:none;
+  transition:width .22s ease, height .22s ease, font-size .22s ease;
+}
+.hdr h1{font-size:20px; letter-spacing:.2px; transition:font-size .22s ease;}
+.hdr .sub{color:var(--ink-dim); font-size:12.5px; transition:opacity .18s ease, max-height .22s ease, margin .22s ease; max-height:20px; opacity:1; overflow:hidden;}
+
+.patientbar{
+  display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;
+  margin-top:10px; transition:margin-top .22s ease, gap .22s ease;
+}
+.field{display:flex; flex-direction:column; gap:4px;}
+.field label{font-size:12px; color:var(--ink-dim); font-weight:600; text-transform:uppercase; letter-spacing:.4px; transition:max-height .2s ease, opacity .15s ease; max-height:16px; opacity:1; overflow:hidden;}
+.inrow{display:flex; gap:6px;}
+input[type=text].dec{
+  background:#f8fafc; border:1.5px solid var(--line); color:var(--ink);
+  font-size:20px; font-weight:700; padding:10px 12px; border-radius:10px;
+  width:110px; min-height:46px;
+  transition:font-size .22s ease, padding .22s ease, min-height .22s ease, width .22s ease;
+}
+input[type=text].dec:focus{outline:2px solid var(--accent); border-color:var(--accent);}
+select{
+  background:#f8fafc; border:1.5px solid var(--line); color:var(--ink);
+  font-size:15px; font-weight:600; padding:10px 10px; border-radius:10px; min-height:46px;
+  transition:font-size .22s ease, padding .22s ease, min-height .22s ease;
+}
+.chk{display:flex; align-items:center; gap:8px; color:var(--ink-dim); font-size:14px; min-height:46px;}
+.chk input{width:20px;height:20px;}
+.resultpill{
+  background:#eaf4fb; border:1.5px solid #bcdff3; border-radius:10px; padding:5px 12px;
+  display:flex; flex-direction:column; gap:0; min-width:0; justify-content:center;
+  transition:padding .22s ease;
+}
+.resultpill .kglabel{font-size:9px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.4px; line-height:1.2; transition:max-height .2s ease, opacity .15s ease; max-height:12px; opacity:1; overflow:hidden;}
+.resultpill .kgval{font-size:16px; font-weight:800; color:#0369a1; line-height:1.25; transition:font-size .22s ease;}
+.resultpill .kgsrc{font-size:9.5px; color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px; line-height:1.2; transition:max-height .2s ease, opacity .15s ease; max-height:14px; opacity:1;}
+button.link{
+  background:#fff;border:1px solid var(--line);color:var(--ink-dim);
+  border-radius:8px;padding:9px 10px;font-size:12.5px;min-height:46px;cursor:pointer;
+  transition:padding .22s ease, min-height .22s ease;
+}
+button.link:active{background:#eef2f7;}
+
+/* Compact mode: applied to .hdr once the page is scrolled, to save vertical space (especially on mobile) */
+.hdr.compact{padding:6px 14px 6px;}
+.hdr.compact .brand{gap:8px;}
+.hdr.compact .brand .mark{width:24px; height:24px; font-size:13px; border-radius:7px;}
+.hdr.compact h1{font-size:15px;}
+.hdr.compact .sub{max-height:0; opacity:0; margin:0;}
+.hdr.compact .patientbar{margin-top:6px; gap:6px;}
+.hdr.compact .field label{max-height:0; opacity:0;}
+.hdr.compact input[type=text].dec{font-size:15px; padding:6px 8px; min-height:36px; width:72px;}
+.hdr.compact select{font-size:12px; padding:6px 6px; min-height:36px;}
+.hdr.compact button.link{padding:6px 8px; font-size:11px; min-height:36px;}
+.hdr.compact .resultpill{padding:3px 10px;}
+.hdr.compact .resultpill .kglabel{max-height:0; opacity:0;}
+.hdr.compact .resultpill .kgval{font-size:13px;}
+.hdr.compact .resultpill .kgsrc{max-height:0; opacity:0;}
+
+nav.tabs{
+  position:sticky; z-index:20;
+  display:flex; overflow-x:auto; gap:6px; padding:10px 12px;
+  background:#ffffff; border-bottom:1px solid var(--line);
+  -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  transition:top .22s ease;
+}
+nav.tabs::-webkit-scrollbar{display:none;}
+nav.tabs button{
+  flex:none; border:1.5px solid var(--tab-color, #334155);
+  background:#f5f7fa; color:var(--ink);
+  border:1.5px solid color-mix(in srgb, var(--tab-color, #334155) 45%, var(--line));
+  background:color-mix(in srgb, var(--tab-color, #334155) 10%, #ffffff);
+  color:color-mix(in srgb, var(--tab-color, #334155) 78%, #10131a);
+  padding:11px 14px; border-radius:11px; font-size:14.5px; font-weight:700; cursor:pointer;
+  min-height:46px; white-space:nowrap; opacity:.72;
+}
+nav.tabs button .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+nav.tabs button.active{
+  opacity:1; border-color:var(--tab-color, var(--accent));
+  background:#eef6fc;
+  background:color-mix(in srgb, var(--tab-color, #334155) 22%, #ffffff);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--tab-color, #334155) 35%, transparent);
+}
+
+main{padding:14px; max-width:820px; margin:0 auto;}
+.module{display:none;}
+.module.active{display:block;}
+.modtitle{
+  display:flex; align-items:center; gap:10px; margin-bottom:14px;
+  padding-bottom:10px; border-bottom:2px solid var(--mod-color,#334155);
+}
+.modtitle .dot{width:14px;height:14px;border-radius:4px;background:var(--mod-color,#334155);flex:none;}
+.modtitle h2{font-size:19px;}
+
+.card{
+  background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--mod-color,#334155);
+  border-radius:var(--radius); padding:14px; margin-bottom:12px;
+  box-shadow:0 1px 2px rgba(15,23,42,.04);
+}
+.card h3{font-size:15.5px; color:var(--ink); display:flex; justify-content:space-between; align-items:center; gap:8px;}
+.card h3 .letter{
+  display:inline-flex; align-items:center; justify-content:center; width:26px;height:26px;
+  border-radius:7px; background:var(--mod-color,#334155); color:#fff; font-size:13px; font-weight:800; margin-right:8px;
+}
+.drug{padding:10px 0; border-top:1px dashed var(--line);}
+.drug:first-child{border-top:none; padding-top:2px;}
+.drug .dname{font-weight:700; font-size:15px; color:var(--ink);}
+.drug .droute{font-size:12px; color:var(--ink-dim); font-weight:600;}
+.drug .dval{font-size:19px; font-weight:800; color:#0369a1; margin-top:2px;}
+.drug .dformula{font-size:12.5px; color:var(--ink-dim); margin-top:1px;}
+.drug .dnote{font-size:12.5px; color:#b45309; margin-top:4px;}
+.drug .dmax{font-size:12px; color:#b91c1c; margin-top:2px;}
+.badge{
+  display:inline-block; padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:800;
+  text-transform:uppercase; letter-spacing:.3px;
+}
+.b-crit{background:#fee2e2;color:#991b1b;border:1px solid #f87171;}
+.b-abn{background:#fef3c7;color:#92400e;border:1px solid #f59e0b;}
+.b-norm{background:#dcfce7;color:#166534;border:1px solid #4ade80;}
+.b-info{background:#e0f2fe;color:#075985;border:1px solid #7dd3fc;}
+
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+@media (max-width:520px){.grid2{grid-template-columns:1fr;}}
+.tblwrap{overflow-x:auto;}
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+table th, table td{padding:7px 8px; border-bottom:1px solid var(--line); text-align:left;}
+table th{color:var(--ink-dim); font-size:11.5px; text-transform:uppercase; letter-spacing:.3px;}
+.note{font-size:12.5px; color:var(--ink-dim);}
+.warnbox{
+  background:#fef2f2; border:1px solid #fca5a5; color:#7f1d1d; border-radius:10px; padding:10px 12px; font-size:13px; margin-top:8px;
+}
+.smallbtn-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
+.subhead{font-size:13px; font-weight:800; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.5px; margin:18px 2px 8px;}
+.subhead:first-child{margin-top:2px;}
+.toggle{
+  border:1.5px solid var(--line); background:#f8fafc; color:var(--ink); border-radius:10px;
+  padding:9px 13px; font-size:13.5px; font-weight:700; min-height:44px; cursor:pointer;
+}
+.toggle.on{border-color:var(--accent); background:#eaf4fb; color:#0369a1;}
+.inline-input{width:90px;}
+footer{max-width:820px;margin:20px auto 0;padding:0 14px;color:var(--ink-dim);font-size:11.5px;text-align:center;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="brand">
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12h3.5l1.8-4.5 3 9 2.4-13 2.6 8.5 1.7-4h5"/>
+      </svg>
+    </div>
+    <div>
+      <h1>PEM Calc</h1>
+      <div class="sub">Paediatric Emergency Drug &amp; Resus Calculator — for use alongside clinical judgement</div>
+    </div>
+  </div>
+
+  <div class="patientbar">
+    <div class="field">
+      <label for="ageVal">Age</label>
+      <div class="inrow">
+        <input type="text" inputmode="decimal" class="dec" id="ageVal" placeholder="–">
+        <select id="ageUnit">
+          <option value="months">months</option>
+          <option value="years">years</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="wtVal">Weight (kg)</label>
+      <input type="text" inputmode="decimal" class="dec" id="wtVal" placeholder="–" style="width:100px;">
+    </div>
+    <div class="resultpill">
+      <span class="kglabel">Working weight</span>
+      <span class="kgval" id="pillWeight">– kg</span>
+      <span class="kgsrc" id="pillSource">Enter age or weight</span>
+    </div>
+  </div>
+</div>
+
+<nav class="tabs" id="tabs"></nav>
+<main id="content"></main>
+<footer>PEM Calc is a bedside calculation aid only. Always confirm doses against local guidelines and clinical judgement, especially outside standard age/weight ranges.</footer>
+
+<script>
+/* ============================= STATE ============================= */
+const state = { ageVal:null, ageUnit:'months', weightVal:null, weightManual:false, lastAutoWeight:null };
+
+function round(n,d=2){ if(n==null||isNaN(n)) return null; const f=Math.pow(10,d); return Math.round(n*f)/f; }
+function fmt(n,d=2){
+  if(n==null||isNaN(n)) return '–';
+  let r = round(n,d);
+  return (Math.abs(r-Math.round(r))<1e-9) ? String(Math.round(r)) : r.toFixed(d).replace(/0+$/,'').replace(/\.$/,'');
+}
+function ageInMonths(){
+  if(state.ageVal==null) return null;
+  return state.ageUnit==='months' ? state.ageVal : state.ageVal*12;
+}
+function estimateWeightFromAge(){
+  const m = ageInMonths();
+  if(m==null || isNaN(m) || m<0) return null;
+  if(m<1) return null;               // neonates <1 month: no formula supplied
+  if(m<=12) return 0.5*m+4;
+  const y = m/12;
+  if(y<=5) return 2*y+8;
+  if(y<=12) return 3*y+7;
+  return null;                        // >12 years: no formula supplied
+}
+function currentWeight(){ return state.weightVal; }
+
+/* ================= decimal-safe input wiring (Android-safe) ================= */
+function wireDecimal(el, onChange){
+  el.addEventListener('input', ()=>{
+    const before = el.value;
+    const start = el.selectionStart;
+    let cleaned = before.replace(/[^0-9.]/g,'');
+    const parts = cleaned.split('.');
+    if(parts.length>2) cleaned = parts[0]+'.'+parts.slice(1).join('');
+    if(cleaned !== before){
+      const newPos = Math.max(0, start - (before.length - cleaned.length));
+      el.value = cleaned;
+      try{ el.setSelectionRange(newPos,newPos); }catch(e){}
+    }
+    const num = cleaned===''||cleaned==='.' ? null : parseFloat(cleaned);
+    onChange(isNaN(num)?null:num);
+  });
+}
+
+/* ============================= PATIENT BAR WIRING ============================= */
+const ageValEl = document.getElementById('ageVal');
+const ageUnitEl = document.getElementById('ageUnit');
+const wtValEl = document.getElementById('wtVal');
+const pillWeight = document.getElementById('pillWeight');
+const pillSource = document.getElementById('pillSource');
+
+wireDecimal(ageValEl, (v)=>{
+  state.ageVal = v;
+  if(!state.weightManual){
+    const est = estimateWeightFromAge();
+    state.lastAutoWeight = est;
+    state.weightVal = est;
+    wtValEl.value = est==null? '' : fmt(est,1);
+  }
+  recomputeAll();
+});
+ageUnitEl.addEventListener('change', ()=>{
+  state.ageUnit = ageUnitEl.value;
+  if(!state.weightManual){
+    const est = estimateWeightFromAge();
+    state.lastAutoWeight = est;
+    state.weightVal = est;
+    wtValEl.value = est==null? '' : fmt(est,1);
+  }
+  recomputeAll();
+});
+wireDecimal(wtValEl, (v)=>{
+  state.weightVal = v;
+  state.weightManual = (v!=null && v !== state.lastAutoWeight);
+  recomputeAll();
+});
+
+function updatePatientPill(){
+  const wt = currentWeight();
+  pillWeight.textContent = wt==null ? '– kg' : fmt(wt,1)+' kg';
+  if(wt==null){ pillSource.textContent = 'Enter age or weight'; return; }
+  if(state.weightManual){ pillSource.textContent = 'Entered directly'; return; }
+  const m = ageInMonths();
+  if(m==null){ pillSource.textContent = 'Entered directly'; return; }
+  if(m<1){ pillSource.textContent = 'Enter weight directly (neonate <1 month)'; return; }
+  if(m<=12){ pillSource.textContent = '(0.5 × age mo) + 4'; return; }
+  const y=m/12;
+  if(y<=5){ pillSource.textContent = '(2 × age yr) + 8'; return; }
+  if(y<=12){ pillSource.textContent = '(3 × age yr) + 7'; return; }
+  pillSource.textContent = 'Enter weight directly (>12y, no formula)';
+}
+
+/* ============================= SHARED CLINICAL HELPERS ============================= */
+function ettDiameter(){
+  const m = ageInMonths(); const wt = currentWeight();
+  if(wt!=null && wt<3) return {value:'3.0–3.5 mm', tag:'(neonate <3kg, fixed)'};
+  if(m==null) return null;
+  if(Math.abs(m-6)<0.05) return {value:'4.0 mm', tag:'(fixed — age 6 months)'};
+  if(Math.abs(m-12)<0.05) return {value:'4.5 mm', tag:'(fixed — age 1 year)'};
+  if(m<6){ let v=3.5+(m/6)*0.5; v=Math.round(v*2)/2; return {value:v.toFixed(1)+' mm', tag:'(interpolated)'}; }
+  if(m<12){ let v=4.0+((m-6)/6)*0.5; v=Math.round(v*2)/2; return {value:v.toFixed(1)+' mm', tag:'(interpolated)'}; }
+  const y=m/12; let v=y/4+4; v=Math.round(v*2)/2;
+  return {value:v.toFixed(1)+' mm', tag:'(age/4 + 4)'};
+}
+function ettLength(){
+  const m=ageInMonths(); if(m==null) return null;
+  const y=m/12;
+  return { oral: (y/2+12), nasal:(y/2+15) };
+}
+function faceMask(premature){
+  if(premature) return {value:'Size 0', tag:'(premature <37 weeks)'};
+  const m=ageInMonths(); if(m==null) return null;
+  if(m<12) return {value:'Size 1', tag:'(term neonate – 1 year)'};
+  const y=m/12;
+  if(y<=5) return {value:'Size 2–3', tag:'(1–5 years)'};
+  if(y<=10) return {value:'Size 3–4', tag:'(5–10 years)'};
+  if(y<=12) return {value:'Size 4', tag:'(10–12 years)'};
+  return {value:'Size 7', tag:'(adolescent/adult)'};
+}
+function igelSize(){
+  const wt=currentWeight(); if(wt==null) return null;
+  if(wt<5) return {value:'Size 1', tag:'(<5 kg)'};
+  if(wt<10) return {value:'Size 1½', tag:'(5–12 kg)'};
+  if(wt<25) return {value:'Size 2', tag:'(10–25 kg)'};
+  if(wt<=35) return {value:'Size 2½', tag:'(25–35 kg)'};
+  if(wt<=60) return {value:'Size 3', tag:'(30–60 kg)'};
+  return {value:'Adult sizing', tag:'(>60 kg)'};
+}
+function blade(premature){
+  if(premature) return {value:'Miller 0', tag:'(premature neonate)'};
+  const m=ageInMonths(); if(m==null) return null;
+  if(m<1) return {value:'Miller 0–1', tag:'(term neonate 0–1 month)'};
+  if(m<24) return {value:'Miller 1 / Wis-Hipple 1', tag:'(1 month – 2 years)'};
+  const y=m/12;
+  if(y<6) return {value:'Miller 2 / Mac 1–2 / Wis-Hipple 1.5', tag:'(2–6 years)'};
+  if(y<=10) return {value:'Miller 2 / Mac 2', tag:'(6–10 years)'};
+  return {value:'Miller 2–3 / Mac 2–3', tag:'(>10 years)'};
+}
+function chestTube(){
+  const wt=currentWeight(); if(wt==null) return null;
+  if(wt<=5) return {value:'10–12 Fr', tag:'(3–5 kg)'};
+  if(wt<=9) return {value:'12–16 Fr', tag:'(6–9 kg)'};
+  if(wt<=11) return {value:'16–20 Fr', tag:'(10–11 kg)'};
+  if(wt<=14) return {value:'20–22 Fr', tag:'(12–14 kg)'};
+  if(wt<=18) return {value:'22–24 Fr', tag:'(15–18 kg)'};
+  if(wt<=22) return {value:'24–28 Fr', tag:'(19–22 kg)'};
+  if(wt<=30) return {value:'28–32 Fr', tag:'(23–30 kg)'};
+  return {value:'32–42 Fr', tag:'(>30 kg)'};
+}
+function anaphylaxisIM(){
+  const m=ageInMonths(); if(m==null) return null;
+  if(m>144) return {value:'0.5 mg IM', tag:'(>12 years)'};
+  if(m>=72) return {value:'0.3 mg IM', tag:'(6–12 years)'};
+  if(m>=6) return {value:'0.15 mg IM', tag:'(6 months – 6 years)'};
+  return {value:'0.1–0.15 mg IM', tag:'(<6 months)'};
+}
+function interp(anchors, x){
+  if(x<=anchors[0].m) return anchors[0].v;
+  const last=anchors[anchors.length-1];
+  if(x>=last.m) return last.v;
+  for(let i=0;i<anchors.length-1;i++){
+    const a=anchors[i], b=anchors[i+1];
+    if(x>=a.m && x<=b.m){
+      if(x===a.m) return a.v; if(x===b.m) return b.v;
+      const f=(x-a.m)/(b.m-a.m); return a.v+f*(b.v-a.v);
+    }
+  }
+}
+const VITAL_BRACKETS=[
+ {maxM:3, label:'Newborn–3 months', hr:{mean:140,awake:'85–205',deep:'80–140'}, rrSev:60, rrMod:'50–59', hrSev:160, hrMod:'150–159'},
+ {maxM:12, label:'3 months – 1 year', hr:{mean:130,awake:'100–180',deep:'75–160'}, rrSev:60, rrMod:'50–59', hrSev:160, hrMod:'150–159'},
+ {maxM:24, label:'1–2 years', hr:{mean:130,awake:'100–180',deep:'75–160'}, rrSev:50, rrMod:'40–49', hrSev:150, hrMod:'140–149'},
+ {maxM:48, label:'3–4 years', hr:null, rrSev:40, rrMod:'35–39', hrSev:140, hrMod:'130–139'},
+ {maxM:77, label:'5 years', hr:null, rrSev:29, rrMod:'24–28', hrSev:130, hrMod:'120–129'},
+ {maxM:90, label:'6–7 years', hr:null, rrSev:27, rrMod:'24–26', hrSev:120, hrMod:'110–119'},
+ {maxM:132, label:'8–11 years', hr:{mean:80,awake:'60–140',deep:'60–90'}, rrSev:25, rrMod:'22–24', hrSev:115, hrMod:'105–115'},
+ {maxM:Infinity, label:'≥12 years', hr:{mean:75,awake:'60–100',deep:'50–90'}, rrSev:25, rrMod:'21–24', hrSev:130, hrMod:'91–130'}
+];
+function getBracket(m){ for(const b of VITAL_BRACKETS){ if(m<=b.maxM) return b; } return VITAL_BRACKETS[VITAL_BRACKETS.length-1]; }
+function parseMin(str){ return parseFloat(String(str).split(/[–-]/)[0]); }
+const SBP50=[{m:12,v:95},{m:60,v:100},{m:120,v:110},{m:180,v:120}];
+const SBP5 =[{m:12,v:70},{m:60,v:75},{m:120,v:80},{m:180,v:90}];
+const MAP50=[{m:12,v:70},{m:60,v:75},{m:120,v:75},{m:180,v:80}];
+const MAP5 =[{m:12,v:50},{m:60,v:55},{m:120,v:55},{m:180,v:65}];
+const SBP_LOW=[{m:1,v:50},{m:12,v:70},{m:60,v:75},{m:120,v:80},{m:180,v:90}];
+const MAP_LOW=[{m:1,v:40},{m:12,v:50},{m:60,v:55},{m:120,v:55},{m:180,v:65}];
+
+/* ============================= GENERIC DRUG RENDER ============================= */
+// cfg: {name, route, low, high, unit, max, maxNote, min, minNote, concMgPerMl, concLabel, note, fixed(fn), warning}
+function drugCard(cfg){
+  const wt = currentWeight();
+  const letter = cfg.letter || '';
+  let valueHtml, formulaHtml, extraHtml='';
+  if(cfg.fixed){
+    const r = cfg.fixed();
+    if(!r){ valueHtml = '<span class="dval">Enter age/weight</span>'; formulaHtml=''; }
+    else{ valueHtml = `<div class="dval"><b>${r.value}</b></div>`; formulaHtml = `<div class="dformula">${r.tag||''}</div>`; }
+  } else {
+    if(wt==null){
+      valueHtml = '<div class="dval">Enter weight</div>'; formulaHtml='';
+    } else {
+      let lo = wt*cfg.low, hi = cfg.high? wt*cfg.high : null;
+      let cappedLo=false, cappedHi=false, minAppliedLo=false, minAppliedHi=false;
+      if(cfg.min!=null){ if(lo<cfg.min){lo=cfg.min; minAppliedLo=true;} if(hi!=null && hi<cfg.min){hi=cfg.min; minAppliedHi=true;} }
+      if(cfg.max!=null){ if(lo>cfg.max){lo=cfg.max; cappedLo=true;} if(hi!=null && hi>cfg.max){hi=cfg.max; cappedHi=true;} }
+      const unit = cfg.unit;
+      let doseStr = hi!=null ? `${fmt(lo)}–${fmt(hi)} ${unit}` : `${fmt(lo)} ${unit}`;
+      valueHtml = `<div class="dval"><b>${doseStr}</b></div>`;
+      let f = hi!=null ? `(${fmt(cfg.low)}–${fmt(cfg.high)} ${unit}/kg × ${fmt(wt,1)} kg)` : `(${fmt(cfg.low)} ${unit}/kg × ${fmt(wt,1)} kg)`;
+      formulaHtml = `<div class="dformula">${f}</div>`;
+      if(cfg.concMgPerMl){
+        const vLo = lo/cfg.concMgPerMl, vHi = hi!=null? hi/cfg.concMgPerMl : null;
+        const volStr = vHi!=null? `${fmt(vLo)}–${fmt(vHi)} mL` : `${fmt(vLo)} mL`;
+        extraHtml += `<div class="dformula">Volume: <b>${volStr}</b> of ${cfg.concLabel} (${unit} ÷ ${cfg.concMgPerMl} ${unit}/mL)</div>`;
+      }
+      if(cappedLo||cappedHi){ extraHtml += `<div class="dmax">Capped at maximum dose (${cfg.max} ${unit}${cfg.maxNote?', '+cfg.maxNote:''})</div>`; }
+      else if(cfg.max!=null){ extraHtml += `<div class="note">Max: ${cfg.max} ${unit}${cfg.maxNote?' — '+cfg.maxNote:''}</div>`; }
+      if(minAppliedLo||minAppliedHi){ extraHtml += `<div class="dmax">Minimum dose applied (${cfg.min} ${unit}${cfg.minNote?', '+cfg.minNote:''})</div>`; }
+      else if(cfg.min!=null){ extraHtml += `<div class="note">Min: ${cfg.min} ${unit}${cfg.minNote?' — '+cfg.minNote:''}</div>`; }
+    }
+  }
+  return `<div class="drug">
+    <div class="dname">${letter?`<span class="letter">${letter}</span>`:''}${cfg.name}</div>
+    ${cfg.route?`<div class="droute">${cfg.route}</div>`:''}
+    ${valueHtml}
+    ${formulaHtml}
+    ${extraHtml}
+    ${cfg.note?`<div class="note">${cfg.note}</div>`:''}
+    ${cfg.warning?`<div class="warnbox">⚠ ${cfg.warning}</div>`:''}
+  </div>`;
+}
+
+/* ============================= MODULES ============================= */
+function cc(inner){ return `<div class="card" style="--mod-color:${cardColor()}">${inner}</div>`; }
+
+const CARD_PALETTE = ['#dc2626','#2563eb','#ea580c','#16a34a','#7c3aed','#ca8a04','#0d9488','#db2777','#4338ca','#92400e','#0891b2','#be123c'];
+let _cardIdx = 0;
+function cardColor(){ const c = CARD_PALETTE[_cardIdx % CARD_PALETTE.length]; _cardIdx++; return c; }
+function resetCardColors(){ _cardIdx = 0; }
+
+const MODULES = [];
+function registerModule(mod){ MODULES.push(mod); }
+
+/* ---- 1. WETFLAG ---- */
+registerModule({
+  id:'wetflag', label:'WETFLAG', color:'#dc2626',
+  buildInputs(container){
+    container.innerHTML = '';
+  },
+  render(){
+    resetCardColors();
+    const wt = currentWeight();
+    const ett = ettDiameter(), len = ettLength();
+    return `
+    <div class="card" style="--mod-color:${cardColor()}">
+      <h3><span class="letter">W</span>Weight</h3>
+      <div class="drug"><div class="dval"><b>${wt!=null?fmt(wt,1)+' kg':'Enter age or weight'}</b></div>
+      <div class="dformula">1–12mo: (0.5 × age mo) + 4</div>
+      <div class="dformula">1–5y: (2 × age yr) + 8</div>
+      <div class="dformula">6–12y: (3 × age yr) + 7</div></div>
+    </div>
+    <div class="card" style="--mod-color:${cardColor()}">
+      <h3><span class="letter">E</span>Electricity</h3>
+      ${drugCard({name:'Defibrillation (single shocks)', low:4, unit:'J', note:'Repeat shocks also 4 J/kg'})}
+      ${drugCard({name:'Cardioversion — 1st shock', low:1, unit:'J'})}
+      ${drugCard({name:'Cardioversion — 2nd shock', low:2, unit:'J'})}
+    </div>
+    <div class="card" style="--mod-color:${cardColor()}">
+      <h3><span class="letter">T</span>Tube (ETT)</h3>
+      <div class="drug"><div class="dname">ETT internal diameter</div>
+        <div class="dval"><b>${ett?ett.value:'Enter age or weight <3kg'}</b></div>
+        <div class="dformula">${ett?ett.tag:''}</div></div>
+      <div class="drug"><div class="dname">Oral ETT length</div>
+        <div class="dval"><b>${len?fmt(len.oral,1)+' cm':'Enter age'}</b></div>
+        <div class="dformula">(age yr ÷ 2) + 12</div></div>
+      <div class="drug"><div class="dname">Nasal ETT length</div>
+        <div class="dval"><b>${len?fmt(len.nasal,1)+' cm':'Enter age'}</b></div>
+        <div class="dformula">(age yr ÷ 2) + 15</div></div>
+      <div class="note">Neonates &lt;3 kg: 3.0 or 3.5 mm. Age 6 months: 4.0 mm. Age 1 year: 4.5 mm.</div>
+    </div>
+    <div class="card" style="--mod-color:${cardColor()}">
+      <h3><span class="letter">F</span>Fluid</h3>
+      ${drugCard({name:'Fluid bolus', route:'0.9% Sodium Chloride, IV/IO', low:20, unit:'mL'})}
+      ${drugCard({name:'Trauma bolus', low:10, unit:'mL'})}
+      ${drugCard({name:'Blood', low:10, unit:'mL'})}
+      ${drugCard({name:'DKA bolus', low:10, unit:'mL'})}
+    </div>
+    <div class="card" style="--mod-color:${cardColor()}">
+      <h3><span class="letter">L</span>Lorazepam</h3>
+      ${drugCard({name:'Lorazepam', route:'IV or IO', low:0.1, unit:'mg', max:4, maxNote:'as per seizure protocol'})}
+    </div>
+    <div class="card" style="--mod-color:${cardColor()}">
+      <h3><span class="letter">A</span>Adrenaline</h3>
+      ${drugCard({name:'Cardiac arrest', route:'IV/IO, 1:10,000', low:0.01, unit:'mg', concMgPerMl:0.1, concLabel:'1:10,000'})}
+      <div class="drug"><div class="dname">Anaphylaxis (IM)</div>
+        <div class="dval"><b>${anaphylaxisIM()?anaphylaxisIM().value:'Enter age'}</b></div>
+        <div class="dformula">${anaphylaxisIM()?anaphylaxisIM().tag:''}</div></div>
+      ${drugCard({name:'Croup (nebulised)', route:'1:1000', low:0.4, unit:'mL', max:5})}
+    </div>
+    <div class="card" style="--mod-color:${cardColor()}">
+      <h3><span class="letter">G</span>Glucose</h3>
+      ${drugCard({name:'Dextrose 10%', low:2, unit:'mL'})}
+    </div>`;
+  }
+});
+
+/* ---- 2. Cardiac Arrest Drugs ---- */
+registerModule({
+  id:'cardiac', label:'Cardiac Arrest', color:'#2563eb',
+  render(){
+    resetCardColors();
+    return `<div class="subhead">Cardiac Arrest Drugs</div>
+    ${cc(drugCard({name:'Adrenaline (1:10,000)', route:'IV/IO', low:0.01, unit:'mg', concMgPerMl:0.1, concLabel:'1:10,000'}))}
+    ${cc(drugCard({name:'Adenosine', low:0.1, high:0.5, unit:'mg'}))}
+    ${cc(drugCard({name:'Amiodarone', low:5, unit:'mg'}))}
+    ${cc(drugCard({name:'Calcium gluconate 10%', low:0.11, unit:'mmol'}))}
+    ${cc(drugCard({name:'Glucose 10%', low:2, unit:'mL'}))}
+    ${cc(drugCard({name:'Magnesium sulfate 50%', low:25, high:50, unit:'mg'}))}
+    ${cc(drugCard({name:'Potassium chloride 15%', low:0.4, unit:'mmol'}))}
+    ${cc(drugCard({name:'Sodium bicarbonate 8.4%', low:1, unit:'mmol'}))}
+    `;
+  }
+});
+
+/* ---- 3. Emergency Drugs ---- */
+registerModule({
+  id:'emergency', label:'Emergency Drugs', color:'#16a34a',
+  render(){
+    resetCardColors();
+    return `<div class="subhead">Emergency Drugs</div>
+    ${cc(drugCard({name:'Amiodarone (arrhythmia loading dose)', low:5, high:10, unit:'mg'}))}
+    ${cc(drugCard({name:'Atropine', low:0.02, unit:'mg', min:0.1, max:0.6}))}
+    ${cc(drugCard({name:'Dexamethasone', low:0.15, high:0.6, unit:'mg'}))}
+    `;
+  }
+});
+
+/* ---- 4. Vital Signs ---- */
+registerModule({
+  id:'vitals', label:'Vital Signs', color:'#7c3aed',
+  buildInputs(container){
+    container.innerHTML = `
+    <div class="card" style="--mod-color:${cardColor()}">
+      <h3>Enter Vitals</h3>
+      <div class="grid2">
+        <div class="field"><label>HR (/min)</label><input type="text" inputmode="decimal" class="dec inline-input" id="obsHR"></div>
+        <div class="field"><label>RR (/min)</label><input type="text" inputmode="decimal" class="dec inline-input" id="obsRR"></div>
+        <div class="field"><label>SBP (mm of Hg)</label><input type="text" inputmode="decimal" class="dec inline-input" id="obsSBP"></div>
+      </div>
+    </div>`;
+    ['obsHR','obsRR','obsSBP'].forEach(id=>{
+      wireDecimal(container.querySelector('#'+id), ()=>updateOutputs('vitals'));
+    });
+  },
+  render(){
+    resetCardColors();
+    const m = ageInMonths();
+    const b = m!=null ? getBracket(m) : null;
+    const obsHR = document.getElementById('obsHR')?.value;
+    const obsRR = document.getElementById('obsRR')?.value;
+    const obsSBP = document.getElementById('obsSBP')?.value;
+    function flag(val, sev, modStr){
+      if(val===''||val==null||isNaN(val)) return '';
+      const v=parseFloat(val);
+      if(v>=sev) return '<span class="badge b-crit">Critical</span>';
+      if(v>=parseMin(modStr)) return '<span class="badge b-abn">Abnormal</span>';
+      return '<span class="badge b-norm">Normal</span>';
+    }
+    let sbpLowFlag='';
+    if(obsSBP!==''&&obsSBP!=null&&m!=null){
+      const low = interp(SBP_LOW, m);
+      sbpLowFlag = parseFloat(obsSBP) < low ? '<span class="badge b-crit">Critical (low)</span>' : '<span class="badge b-norm">Normal</span>';
+    }
+    const sbp50 = m!=null? round(interp(SBP50,m),0):null;
+    const sbp5 = m!=null? round(interp(SBP5,m),0):null;
+    const sbpLow = m!=null? round(interp(SBP_LOW,m),0):null;
+    return `
+    <div class="card" style="--mod-color:${cardColor()}">
+      <h3>Live assessment</h3>
+      <table><tbody>
+      <tr><th>HR</th><td>${obsHR||'–'} bpm ${b&&obsHR?flag(obsHR,b.hrSev,b.hrMod):''}</td></tr>
+      <tr><th>RR</th><td>${obsRR||'–'} /min ${b&&obsRR?flag(obsRR,b.rrSev,b.rrMod):''}</td></tr>
+      <tr><th>SBP</th><td>${obsSBP||'–'} mmHg ${sbpLowFlag}</td></tr>
+      </tbody></table>
+    </div>
+    <div class="card" style="--mod-color:${cardColor()}">
+      <h3>Normal ranges &amp; critical values ${b?`<span class="badge b-info">${b.label}</span>`:''}</h3>
+      ${!b? '<div class="note">Enter age to see normal ranges.</div>' : `
+      <table><tbody>
+      <tr><th>HR</th><td><b>&lt;${parseMin(b.hrMod)}</b> bpm <span class="note">(critical ≥<b>${b.hrSev}</b>)</span></td></tr>
+      <tr><th>RR</th><td><b>&lt;${parseMin(b.rrMod)}</b> /min <span class="note">(critical ≥<b>${b.rrSev}</b>)</span></td></tr>
+      <tr><th>SBP</th><td><b>${sbp5}–${sbp50}</b> mmHg <span class="note">(critical &lt;<b>${sbpLow}</b>)</span></td></tr>
+      </tbody></table>`}
+    </div>`;
+  }
+});
+
+/* ---- 5. RSI / Airway ---- */
+registerModule({
+  id:'rsi', label:'RSI / Airway', color:'#ea580c',
+  buildInputs(container){
+    container.innerHTML = `<div class="card" style="--mod-color:${cardColor()}"><label class="chk"><input type="checkbox" id="prematureChk"> Premature (&lt;37 weeks gestation)</label></div>`;
+    container.querySelector('#prematureChk').addEventListener('change', ()=>updateOutputs('rsi'));
+  },
+  render(){
+    resetCardColors();
+    const premature = document.getElementById('prematureChk')?.checked || false;
+    const ett=ettDiameter(), len=ettLength(), mask=faceMask(premature), igel=igelSize(), bl=blade(premature);
+    return `
+    <div class="subhead">RSI Drugs</div>
+    ${cc(drugCard({name:'Ketamine', low:1, high:2, unit:'mg'}))}
+    ${cc(drugCard({name:'Fentanyl', low:2, high:5, unit:'mcg'}))}
+    ${cc(drugCard({name:'Rocuronium', low:1, unit:'mg'}))}
+    ${cc(drugCard({name:'Suxamethonium', low:1, high:2, unit:'mg'}))}
+    ${cc(drugCard({name:'Atropine', low:0.02, unit:'mg', min:0.1, max:0.6}))}
+    <div class="subhead">Airway sizing</div>
+    ${cc(`<div class="drug"><div class="dname">ETT diameter</div><div class="dval"><b>${ett?ett.value:'Enter age / weight'}</b></div><div class="dformula">${ett?ett.tag:''}</div></div>`)}
+    ${cc(`<div class="drug"><div class="dname">Oral / Nasal ETT length</div><div class="dval"><b>${len?fmt(len.oral,1)+' / '+fmt(len.nasal,1)+' cm':'Enter age'}</b></div></div>`)}
+    ${cc(`<div class="drug"><div class="dname">Face mask size</div><div class="dval"><b>${mask?mask.value:'Enter age'}</b></div><div class="dformula">${mask?mask.tag:''}</div></div>`)}
+    ${cc(`<div class="drug"><div class="dname">i-gel size</div><div class="dval"><b>${igel?igel.value:'Enter weight'}</b></div><div class="dformula">${igel?igel.tag:''}</div></div>`)}
+    ${cc(`<div class="drug"><div class="dname">Laryngoscope blade</div><div class="dval"><b>${bl?bl.value:'Enter age'}</b></div><div class="dformula">${bl?bl.tag:''}</div></div>`)}
+    `;
+  }
+});
+
+/* ---- 6. Fluids / Burns ---- */
+function holidaySegar(wt){
+  if(wt==null) return null;
+  let dailyRate=0, hourlyRate=0;
+  const t1=Math.min(wt,10), t2=Math.min(Math.max(wt-10,0),10), t3=Math.max(wt-20,0);
+  dailyRate = t1*100 + t2*50 + t3*20;
+  hourlyRate = t1*4 + t2*2 + t3*1;
+  return {daily:dailyRate, hourly:hourlyRate};
+}
+registerModule({
+  id:'fluids', label:'Fluids / Burns', color:'#0d9488',
+  buildInputs(container){
+    container.innerHTML = `<div class="card" style="--mod-color:${cardColor()}"><div class="field"><label for="tbsaVal">Burns TBSA (%)</label>
+      <input type="text" inputmode="decimal" class="dec inline-input" id="tbsaVal"></div></div>`;
+    wireDecimal(container.querySelector('#tbsaVal'), ()=>updateOutputs('fluids'));
+  },
+  render(){
+    resetCardColors();
+    const wt = currentWeight();
+    const hs = holidaySegar(wt);
+    const tbsaStr = document.getElementById('tbsaVal')?.value;
+    const tbsa = tbsaStr? parseFloat(tbsaStr) : null;
+    let burnsHtml = '<div class="note">Enter TBSA % and weight.</div>';
+    if(wt!=null && tbsa!=null && !isNaN(tbsa)){
+      if(tbsa>10){
+        const totalBurn = tbsa*wt*3;
+        const half = totalBurn/2;
+        const first8Rate = half/8 + (hs?hs.hourly:0);
+        const first8Total = half + (hs?hs.hourly*8:0);
+        const next16Rate = half/16 + (hs?hs.hourly:0);
+        const next16Total = half + (hs?hs.hourly*16:0);
+        burnsHtml = `
+        <div class="drug"><div class="dname">Total burns fluid (24h)</div><div class="dval"><b>${fmt(totalBurn,0)} mL</b></div>
+          <div class="dformula">(%TBSA × weight × 3 = ${fmt(tbsa)} × ${fmt(wt,1)} × 3)</div></div>
+        <div class="drug"><div class="dname">First 8 hours (burns 50% + maintenance)</div>
+          <div class="dval"><b>${fmt(first8Rate,1)} mL/hr</b> · total <b>${fmt(first8Total,0)} mL</b></div>
+          <div class="dformula">(${fmt(half,0)} mL burns ÷ 8h) + ${fmt(hs.hourly,1)} mL/hr maintenance</div></div>
+        <div class="drug"><div class="dname">Next 16 hours (burns 50% + maintenance)</div>
+          <div class="dval"><b>${fmt(next16Rate,1)} mL/hr</b> · total <b>${fmt(next16Total,0)} mL</b></div>
+          <div class="dformula">(${fmt(half,0)} mL burns ÷ 16h) + ${fmt(hs.hourly,1)} mL/hr maintenance</div></div>`;
+      } else {
+        burnsHtml = `<div class="note">Parkland-type burns fluid formula applies for TBSA &gt;10%. Continue maintenance fluids (below) and standard wound care.</div>`;
+      }
+    }
+    return `
+    <div class="subhead">Resuscitation boluses</div>
+    ${cc(drugCard({name:'Fluid bolus (0.9% NaCl)', low:20, unit:'mL'}))}
+    ${cc(drugCard({name:'Trauma', low:10, unit:'mL'}))}
+    ${cc(drugCard({name:'Blood', low:10, unit:'mL'}))}
+    ${cc(drugCard({name:'DKA', low:10, unit:'mL'}))}
+    <div class="card" style="--mod-color:${cardColor()}"><h3>Maintenance fluid (Holliday–Segar)</h3>
+      ${wt==null? '<div class="note">Enter weight.</div>' : `
+      <div class="drug"><div class="dval"><b>${fmt(hs.hourly,1)} mL/hr</b> · <b>${fmt(hs.daily,0)} mL/day</b></div>
+      <div class="dformula">First 10kg 100mL/kg/day (4mL/kg/hr) + next 10kg 50mL/kg/day (2mL/kg/hr) + each kg &gt;20kg 20mL/kg/day (1mL/kg/hr)</div></div>`}
+    </div>
+    <div class="card" style="--mod-color:${cardColor()}"><h3>Burns</h3>${burnsHtml}</div>`;
+  }
+});
+
+/* ---- 7. Seizure ---- */
+registerModule({
+  id:'seizure', label:'Seizure', color:'#db2777',
+  buildInputs(container){
+    container.innerHTML = `<div class="card" style="--mod-color:${cardColor()}">
+      <div class="smallbtn-row">
+        <button class="toggle on" id="ivYes">IV/IO access: Yes</button>
+        <button class="toggle" id="ivNo">IV/IO access: No</button>
+      </div>
+      <div class="smallbtn-row">
+        <button class="toggle on" id="phenNo">Not on phenytoin</button>
+        <button class="toggle" id="phenYes">Already on phenytoin</button>
+      </div>
+    </div>`;
+    let iv=true, phen=false;
+    const ivYes=container.querySelector('#ivYes'), ivNo=container.querySelector('#ivNo');
+    const phenYes=container.querySelector('#phenYes'), phenNo=container.querySelector('#phenNo');
+    ivYes.addEventListener('click', ()=>{iv=true; ivYes.classList.add('on'); ivNo.classList.remove('on'); MODULES.find(m=>m.id==='seizure')._iv=iv; updateOutputs('seizure');});
+    ivNo.addEventListener('click', ()=>{iv=false; ivNo.classList.add('on'); ivYes.classList.remove('on'); MODULES.find(m=>m.id==='seizure')._iv=iv; updateOutputs('seizure');});
+    phenYes.addEventListener('click', ()=>{phen=true; phenYes.classList.add('on'); phenNo.classList.remove('on'); MODULES.find(m=>m.id==='seizure')._phen=phen; updateOutputs('seizure');});
+    phenNo.addEventListener('click', ()=>{phen=false; phenNo.classList.add('on'); phenYes.classList.remove('on'); MODULES.find(m=>m.id==='seizure')._phen=phen; updateOutputs('seizure');});
+    this._iv=true; this._phen=false;
+  },
+  render(){
+    resetCardColors();
+    const mod = MODULES.find(m=>m.id==='seizure');
+    const iv = mod._iv!==false; const phen = !!mod._phen;
+    const m = ageInMonths();
+    function bandDose(bands){
+      if(m==null) return null;
+      for(const b of bands){ if(m<=b.max) return b.val; }
+      return bands[bands.length-1].val;
+    }
+    const buccalBand = bandDose([{max:11,val:'2.5 mg'},{max:47,val:'5 mg'},{max:107,val:'7.5 mg'},{max:Infinity,val:'10 mg'}]);
+    const rectalBand = bandDose([{max:11,val:'5 mg'},{max:131,val:'5–10 mg'},{max:Infinity,val:'10–20 mg'}]);
+    return `
+    <div class="subhead">First-line (0–5 min)</div>
+    ${iv? cc(drugCard({name:'Lorazepam', route:'IV/IO', low:0.1, unit:'mg', max:4}))
+        : cc(`<div class="drug"><div class="dname">Buccal Midazolam</div><div class="dval"><b>${buccalBand||'Enter age'}</b></div>
+           <div class="dformula">Age band dose · approx. 0.3 mg/kg, max 10 mg</div></div>
+           ${drugCard({name:'— weight-based check', low:0.3, unit:'mg', max:10})}`)
+           + cc(`<div class="drug"><div class="dname">OR Rectal Diazepam</div><div class="dval"><b>${rectalBand||'Enter age'}</b></div>
+           <div class="dformula">Age band dose · approx. 0.5 mg/kg, max 20 mg</div></div>
+           ${drugCard({name:'— weight-based check', low:0.5, unit:'mg', max:20})}`)}
+    <div class="subhead">Second-line (next 10 min)</div>
+    ${cc(drugCard({name:'Levetiracetam', route:'IV/IO, infuse over 5 min', low:40, unit:'mg', max:3000, maxNote:'3 g'}))}
+    <div class="subhead">Third-line (next 20 min)</div>
+    ${!phen? cc(drugCard({name:'Phenytoin', route:'IV/IO, infuse over 20 min — cardiac monitoring required', low:20, unit:'mg', max:2000, maxNote:'2 g', warning:'Continuous cardiac monitoring required'}))
+           : cc(drugCard({name:'Phenobarbital', route:'IV/IO, infuse over 20 min', low:20, unit:'mg', max:1000, maxNote:'1 g'}))}
+    <div class="subhead">Refractory status epilepticus — RSI induction</div>
+    ${cc(drugCard({name:'Ketamine', low:1, high:2, unit:'mg'}))}
+    ${cc(drugCard({name:'Thiopentone', low:3, high:5, unit:'mg'}))}
+    ${cc(drugCard({name:'Propofol', low:2, high:4, unit:'mg'}))}
+    `;
+  }
+});
+
+/* ---- 8. Trauma ---- */
+registerModule({
+  id:'trauma', label:'Trauma', color:'#ca8a04',
+  render(){
+    resetCardColors();
+    const ct = chestTube();
+    return `
+    <div class="subhead">Blood products</div>
+    ${cc(drugCard({name:'Red blood cells (RBC)', low:10, unit:'mL', maxNote:'max 4 adult units'}))}
+    ${cc(drugCard({name:'Fresh frozen plasma (FFP)', low:10, unit:'mL', maxNote:'max 4 adult units'}))}
+    ${cc(drugCard({name:'Cryoprecipitate', low:10, unit:'mL', maxNote:'max 2 adult units'}))}
+    ${cc(drugCard({name:'Platelets', low:10, unit:'mL', maxNote:'up to 15 kg, max 1 adult unit'}))}
+    <div class="card" style="--mod-color:${cardColor()}"><h3>Chest tube size</h3>
+      <div class="drug"><div class="dval"><b>${ct?ct.value:'Enter weight'}</b></div><div class="dformula">${ct?ct.tag:''}</div></div>
+    </div>
+    <div class="card" style="--mod-color:${cardColor()}"><h3>Major haemorrhage targets</h3>
+    <table><tbody>
+      <tr><th>Fibrinogen</th><td>&gt; <b>1.5</b> g/L</td></tr>
+      <tr><th>Ionised Ca²⁺</th><td>&gt; <b>1.2</b> mmol/L</td></tr>
+      <tr><th>Haemoglobin</th><td>&gt; <b>80</b> g/L</td></tr>
+      <tr><th>Platelets</th><td>&gt; <b>100</b> ×10⁹/L</td></tr>
+      <tr><th>INR</th><td>&lt; <b>1.5</b></td></tr>
+      <tr><th>APTR</th><td>&lt; <b>1.5</b></td></tr>
+      <tr><th>pH</th><td>&gt; <b>7.30</b></td></tr>
+      <tr><th>Temperature</th><td><b>36°C</b></td></tr>
+    </tbody></table>
+    </div>`;
+  }
+});
+
+/* ---- 10. Asthma ---- */
+function ageYearsOnly(){
+  const m = ageInMonths();
+  return m==null? null : m/12;
+}
+function prednisoloneBand(){
+  const y = ageYearsOnly(); if(y==null || y<2) return null;
+  if(y<=5) return {value:'20 mg', tag:'(2–5 years)'};
+  if(y<=7) return {value:'30–40 mg', tag:'(5–7 years)'};
+  return {value:'40 mg', tag:'(>7 years)'};
+}
+function salbutamolNebBand(){
+  const y = ageYearsOnly(); if(y==null) return null;
+  return y<5 ? {value:'2.5 mg', tag:'(<5 years)'} : {value:'5 mg', tag:'(≥5 years)'};
+}
+function ipratropiumBand(){
+  const y = ageYearsOnly(); if(y==null) return {value:'250 mcg', tag:'(all ages)'};
+  return y>12 ? {value:'250 mcg (may increase to 500 mcg)', tag:'(>12 years)'} : {value:'250 mcg', tag:'(all ages)'};
+}
+function asthmaAgeBand(){
+  const y = ageYearsOnly(); if(y==null) return null;
+  if(y<2) return null;
+  return y<=5 ? '2-5' : '>5';
+}
+registerModule({
+  id:'asthma', label:'Asthma', color:'#475569',
+  buildInputs(container){
+    container.innerHTML = `<div class="card" style="--mod-color:${cardColor()}">
+      <h3>Assessment findings (optional — for severity check)</h3>
+      <div class="grid2">
+        <div class="field"><label>RR (/min)</label><input type="text" inputmode="decimal" class="dec inline-input" id="asRR"></div>
+        <div class="field"><label>HR (bpm)</label><input type="text" inputmode="decimal" class="dec inline-input" id="asHR"></div>
+        <div class="field"><label>SpO₂ (%)</label><input type="text" inputmode="decimal" class="dec inline-input" id="asSpO2"></div>
+        <div class="field"><label>PEFR (% best/predicted)</label><input type="text" inputmode="decimal" class="dec inline-input" id="asPEFR"></div>
+      </div>
+      <div class="note" style="margin-top:10px;">Amber features (any present):</div>
+      <div class="smallbtn-row">
+        <button class="toggle" data-amber="sentence">Can't complete sentences / too breathless to talk or feed</button>
+        <button class="toggle" data-amber="wheeze">Decreased air entry, marked wheeze</button>
+        <button class="toggle" data-amber="accessory">Using accessory muscles</button>
+      </div>
+      <div class="note">Red / life-threatening features (any present):</div>
+      <div class="smallbtn-row">
+        <button class="toggle" data-red="talk">Not talking / not responding</button>
+        <button class="toggle" data-red="confusion">Confusion or agitation</button>
+        <button class="toggle" data-red="silent">Silent chest</button>
+        <button class="toggle" data-red="cyanosis">Cyanosis</button>
+        <button class="toggle" data-red="effort">Poor respiratory effort / exhaustion</button>
+        <button class="toggle" data-red="hypotension">Hypotension</button>
+      </div>
+    </div>`;
+    ['asRR','asHR','asSpO2','asPEFR'].forEach(id=>{
+      wireDecimal(container.querySelector('#'+id), ()=>updateOutputs('asthma'));
+    });
+    container.querySelectorAll('.toggle[data-amber],.toggle[data-red]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ btn.classList.toggle('on'); updateOutputs('asthma'); });
+    });
+  },
+  render(){
+    resetCardColors();
+    const pred = prednisoloneBand(), salb = salbutamolNebBand();
+    const container = MODULES.find(m=>m.id==='asthma')._container;
+    const amberOn = [...container.querySelectorAll('.toggle[data-amber].on')].length>0;
+    const redOn = [...container.querySelectorAll('.toggle[data-red].on')].length>0;
+    const rr = parseFloat(document.getElementById('asRR')?.value);
+    const hr = parseFloat(document.getElementById('asHR')?.value);
+    const spo2 = parseFloat(document.getElementById('asSpO2')?.value);
+    const pefr = parseFloat(document.getElementById('asPEFR')?.value);
+    const band = asthmaAgeBand();
+    let severity = null;
+    if(redOn || (!isNaN(pefr) && pefr<33)) severity = 'red';
+    else if(amberOn || (!isNaN(spo2) && spo2<94) || (!isNaN(pefr) && pefr<50)) severity = 'amber';
+    else if(band && (!isNaN(rr) || !isNaN(hr))){
+      const rrLimit = band==='2-5'?40:30, hrLimit = band==='2-5'?140:125;
+      if((!isNaN(rr) && rr>rrLimit) || (!isNaN(hr) && hr>hrLimit)) severity = 'amber';
+      else severity = 'green';
+    }
+    const sevBadge = severity==='red'? '<span class="badge b-crit">Red — life-threatening</span>'
+                    : severity==='amber'? '<span class="badge b-abn">Amber — acute severe</span>'
+                    : severity==='green'? '<span class="badge b-norm">Green — moderate</span>'
+                    : '<span class="badge b-info">Enter findings</span>';
+    return `
+    <div class="subhead">Live severity assessment</div>
+    ${cc(`<div class="drug"><div class="dval">${sevBadge}</div><div class="note">Based on findings ticked above and entered RR/HR/SpO₂/PEFR against the age band${band?` (${band==='2-5'?'2–5 years':'>5 years'})`:''}. Any life-threatening feature overrides to Red regardless of numbers.</div></div>`)}
+
+    <div class="subhead">Prednisolone</div>
+    ${(()=>{
+      const wt = currentWeight();
+      let altText;
+      if(wt!=null){
+        let lo = wt*1, hi = wt*2;
+        const capped = hi>40;
+        if(lo>40) lo=40; if(hi>40) hi=40;
+        altText = `alternative: 1–2 mg/kg × ${fmt(wt,1)} kg = ${fmt(lo)}–${fmt(hi)} mg${capped?' (capped at max 40 mg)':' (max 40 mg)'}`;
+      } else {
+        altText = 'alternative: 1–2 mg/kg (max 40 mg)';
+      }
+      return cc(`<div class="drug"><div class="dval"><b>${pred?pred.value:'Enter age'}</b></div><div class="dformula">${pred?pred.tag:''}</div><div class="note">(${altText})</div></div>`);
+    })()}
+    <div class="subhead">Salbutamol</div>
+    ${cc(`<div class="drug"><div class="dname">Spacer</div><div class="dval"><b>10 puffs</b></div></div>`)}
+    ${cc(`<div class="drug"><div class="dname">OR Nebulised</div><div class="dval"><b>${salb?salb.value:'Enter age'}</b></div><div class="dformula">${salb?salb.tag:''}</div></div>`)}
+    <div class="subhead">Ipratropium Bromide (nebulised)</div>
+    ${cc(`<div class="drug"><div class="dval"><b>250 mcg</b></div><div class="note">(up to 500 mcg via nebuliser for over 12 years)</div></div>`)}
+    <div class="subhead">Hydrocortisone</div>
+    ${cc(drugCard({name:'Hydrocortisone', route:'every 6 hours', low:4, unit:'mg', max:100, maxNote:'per dose', note:'Ages 2–16 years'}))}
+    <div class="subhead">Magnesium Sulfate (nebulised)</div>
+    ${cc(`<div class="drug"><div class="dval"><b>150 mg</b></div><div class="note">Ages 2–16 years</div></div>`)}
+
+    <div class="subhead">Severity reference</div>
+    ${cc(`<h3>🟢 Green — Moderate</h3>
+      <table><tbody>
+      <tr><th>Talking</th><td>In sentences</td></tr>
+      <tr><th>Auscultation</th><td>Good air entry, mild–moderate wheeze</td></tr>
+      <tr><th>RR</th><td>≤ <b>40</b>/min (2–5y) · ≤ <b>30</b>/min (&gt;5y)</td></tr>
+      <tr><th>HR</th><td>≤ <b>140</b> bpm (2–5y) · ≤ <b>125</b> bpm (&gt;5y)</td></tr>
+      <tr><th>SpO₂</th><td>≥ <b>94%</b> in air</td></tr>
+      <tr><th>PEFR</th><td><b>50%</b> best/predicted</td></tr>
+      </tbody></table>`)}
+    ${cc(`<h3>🟠 Amber — Acute severe</h3>
+      <table><tbody>
+      <tr><th>Talking</th><td>Can't complete sentences; too breathless to talk/feed</td></tr>
+      <tr><th>Auscultation</th><td>Decreased air entry, marked wheeze, accessory muscle use</td></tr>
+      <tr><th>RR</th><td>&gt; <b>40</b>/min (2–5y) · &gt; <b>30</b>/min (&gt;5y)</td></tr>
+      <tr><th>HR</th><td>&gt; <b>140</b> bpm (2–5y) · &gt; <b>125</b> bpm (&gt;5y)</td></tr>
+      <tr><th>SpO₂</th><td>&lt; <b>94%</b> in air</td></tr>
+      <tr><th>PEFR</th><td><b>33–50%</b> best/predicted</td></tr>
+      </tbody></table>`)}
+    ${cc(`<h3>🔴 Red — Life-threatening</h3>
+      <table><tbody>
+      <tr><th>Talking</th><td>Not talking, not responding, confusion, agitation</td></tr>
+      <tr><th>Auscultation</th><td>Silent chest</td></tr>
+      <tr><th>Respiratory</th><td>Cyanosis, poor respiratory effort, exhaustion</td></tr>
+      <tr><th>Cardiovascular</th><td>Hypotension</td></tr>
+      <tr><th>SpO₂</th><td>&lt; <b>94%</b> in air</td></tr>
+      <tr><th>PEFR</th><td>&lt; <b>33%</b> best/predicted</td></tr>
+      </tbody></table>`)}
+    `;
+  }
+});
+
+/* ============================= APP SHELL ============================= */
+const tabsEl = document.getElementById('tabs');
+const contentEl = document.getElementById('content');
+let activeId = MODULES[0].id;
+
+MODULES.forEach(mod=>{
+  const btn = document.createElement('button');
+  btn.style.setProperty('--tab-color', mod.color);
+  btn.innerHTML = `<span class="dot" style="background:${mod.color}"></span>${mod.label}`;
+  btn.addEventListener('click', ()=>switchTab(mod.id));
+  mod._btn = btn;
+  tabsEl.appendChild(btn);
+
+  const div = document.createElement('div');
+  div.className = 'module';
+  div.style.setProperty('--mod-color', mod.color);
+  div.innerHTML = `<div class="modtitle"><span class="dot"></span><h2>${mod.label}</h2></div>
+    <div class="module-inputs"></div><div class="module-outputs"></div>`;
+  contentEl.appendChild(div);
+  mod._container = div;
+  mod._built = false;
+});
+
+function switchTab(id){
+  activeId = id;
+  MODULES.forEach(m=>{
+    const isActive = m.id===id;
+    m._btn.classList.toggle('active', isActive);
+    m._container.classList.toggle('active', isActive);
+    if(isActive && !m._built){
+      if(m.buildInputs) m.buildInputs(m._container.querySelector('.module-inputs'));
+      m._built = true;
+      updateOutputs(id);
+    }
+  });
+}
+function updateOutputs(id){
+  const mod = MODULES.find(m=>m.id===id);
+  if(!mod || !mod._built) return;
+  mod._container.querySelector('.module-outputs').innerHTML = mod.render();
+}
+function recomputeAll(){
+  updatePatientPill();
+  MODULES.forEach(m=>{ if(m._built) updateOutputs(m.id); });
+}
+switchTab(MODULES[0].id);
+recomputeAll();
+
+/* ============================= SCROLL-COMPACT HEADER ============================= */
+const hdrEl = document.querySelector('.hdr');
+function positionTabs(){
+  tabsEl.style.top = hdrEl.offsetHeight + 'px';
+}
+let _compact = false;
+function onScroll(){
+  const shouldCompact = window.scrollY > 24;
+  if(shouldCompact !== _compact){
+    _compact = shouldCompact;
+    hdrEl.classList.toggle('compact', _compact);
+  }
+  // keep tabs glued to the header's bottom edge through the resize transition
+  requestAnimationFrame(positionTabs);
+}
+window.addEventListener('scroll', onScroll, {passive:true});
+window.addEventListener('resize', positionTabs);
+positionTabs();
+// re-measure a few times while the CSS transition runs, so the tabs bar tracks the animating header height
+hdrEl.addEventListener('transitionend', positionTabs);
+
+/* ============================= PWA (offline) ============================= */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
