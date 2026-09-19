@@ -1,5 +1,5 @@
 {
-  "name": "PEM Calc",
+  "name": "PEM Calculator",
   "short_name": "PEM Calc",
   "description": "Paediatric Emergency Drug & Resus Calculator",
   "start_url": "./index.html",
